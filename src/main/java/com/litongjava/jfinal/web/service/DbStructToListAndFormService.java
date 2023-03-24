@@ -1,19 +1,25 @@
 package com.litongjava.jfinal.web.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.jfinal.kit.Kv;
 import com.jfinal.plugin.activerecord.ActiveRecordPlugin;
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
 import com.jfinal.plugin.druid.DruidPlugin;
+import com.jfinal.template.Engine;
+import com.jfinal.template.Template;
+import com.litongjava.jfinal.web.model.ElInput;
+import com.litongjava.jfinal.web.utils.EngineUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class DbStructToJsonService {
+public class DbStructToListAndFormService {
 
   private String ds1 = "datasource1";
 
@@ -29,29 +35,41 @@ public class DbStructToJsonService {
   field是字段端转为驼峰格式,title是备注中的内容
    * @return
    */
-  public String toJson(String tableName,String tableSchema) {
+  public String toJson(String tableName, String tableSchema) {
     // 链接数据库
-    String sql = "SELECT COLUMN_NAME, COLUMN_COMMENT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' AND TABLE_SCHEMA = '" + tableSchema + "'";
+    String sql = "SELECT COLUMN_NAME, COLUMN_COMMENT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName
+        + "' AND TABLE_SCHEMA = '" + tableSchema + "'";
     log.info(sql);
     List<Record> findResult = Db.find(sql);
     if (findResult != null) {
       log.info(ds1 + "连接成功");
-      log.info("size:{}",findResult.size());
+      log.info("size:{}", findResult.size());
     }
-    String[] columns = {"field", "title"};
+    String[] columns = { "field", "title" };
     List<Map<String, String>> rows = new ArrayList<>();
+    List<ElInput> list = new ArrayList<>(rows.size());
     for (Record record : findResult) {
       Map<String, String> row = new HashMap<>();
       String columnName = toCamelCase(record.getStr("COLUMN_NAME"));
-      row.put(columns[0], "\""+ columnName + "\"");
+      row.put(columns[0], "\"" + columnName + "\"");
+
       String columnComment = record.getStr("COLUMN_COMMENT");
-      columnComment=columnComment.split(" ")[0];
-      row.put(columns[1], "\""+ columnComment +"\"");
+      columnComment = columnComment.split(" ")[0];
+      row.put(columns[1], "\"" + columnComment + "\"");
       rows.add(row);
+
+      ElInput name = new ElInput(columnComment, columnName, "temp." + columnName);
+      list.add(name);
     }
 
-    //String jsonStr = JSONUtil.toJsonStr(rows);
-    return rows.toString().replace("=", ":");
+    String jsonCols = rows.toString().replace("=", ":");
+
+    Kv kv = Kv.by("elList", list);
+    Engine engine = EngineUtils.getEngine();
+    Template template = engine.getTemplate("/table-form-el-input.html");
+    String string = template.renderToString(kv);
+
+    return jsonCols + "\r\n" + string;
 
   }
 
@@ -86,12 +104,12 @@ public class DbStructToJsonService {
   }
 
   public static void main(String[] args) {
-    DbStructToJsonService dbStructToJsonService = new DbStructToJsonService();
+    DbStructToListAndFormService dbStructToJsonService = new DbStructToListAndFormService();
     dbStructToJsonService.start();
-    String json = dbStructToJsonService.toJson("cf_alarm","cj_chaofu");
-    System.out.println(json);
-    //[{ field: 'configId', title: '配置ID' }, { field: 'shipName', title: '船舶名称' },{ field: 'mmsi', title: 'MMSI' }, { field: 'longitude', title: '经度' }]
-     
+    String result = dbStructToJsonService.toJson("cf_alarm", "cj_chaofu");
+    System.out.println(result);
+    // [{ field: 'configId', title: '配置ID' }, { field: 'shipName', title: '船舶名称' },{ field: 'mmsi', title: 'MMSI' }, { field: 'longitude', title: '经度' }]
+
   }
 
 }
