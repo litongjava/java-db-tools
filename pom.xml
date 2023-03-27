@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.litongjava</groupId>
   <artifactId>java-db-tools</artifactId>
@@ -8,6 +9,7 @@
     <java.version>1.8</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
+    <main.class>com.litongjava.db.tools.WebApp</main.class>
   </properties>
   <dependencies>
     <dependency>
@@ -71,6 +73,12 @@
       <artifactId>druid</artifactId>
       <version>0.2.9</version>
     </dependency>
+
+    <dependency>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc8</artifactId>
+      <version>21.5.0.0</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -83,19 +91,44 @@
           <compilerArgument>-parameters</compilerArgument>
         </configuration>
       </plugin>
+      <!--
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>2.7.4</version>
         <configuration>
-          <mainClass>com.litongjava.jfinal.web.WebApp</mainClass>
+          <mainClass>com.litongjava.db.tools.WebApp</mainClass>
         </configuration>
-        <!-- 设置执行目标 -->
+        设置执行目标
         <executions>
           <execution>
             <goals>
               <goal>repackage</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+    -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>${main.class}</mainClass>
+                </transformer>
+              </transformers>
+              <artifactSet>
+              </artifactSet>
+              <!--<outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar</outputFile> -->
+            </configuration>
           </execution>
         </executions>
       </plugin>
